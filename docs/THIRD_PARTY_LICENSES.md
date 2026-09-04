@@ -76,3 +76,15 @@ limitations under the License.
   - 4-Point Plate Homography Rectification & Orientation Correction (`vision/anpr/indian_anpr_engine.py`)
   - Indian Registration Pattern Validation & Gujarat RTO Normalizer (`vision/anpr/indian_anpr_engine.py`)
   - Multi-Frame Track Voting & Confidence Aggregation Engine (`vision/anpr/indian_anpr_engine.py`)
+
+---
+
+## 6. TAU-Agent (`siri-rouser/TAU-Agent`)
+
+- **Source**: https://github.com/siri-rouser/TAU-Agent
+- **Reference**: AI City Challenge 2026 (Track 3 2nd Place) & arXiv:2608.25935
+- **License**: MIT License
+- **Copyright**: Copyright (c) 2026 TAU-Agent contributors
+- **Integrated Components**:
+  - Grounded Natural-Language Query & Retrieval Parser (`backend/investigation/nl_query_engine.py`)
+  - Multi-Camera Event & Evidence Graph Engine (`backend/investigation/evidence_graph.py`)
