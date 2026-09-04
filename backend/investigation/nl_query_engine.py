@@ -44,6 +44,25 @@ class InvestigationQueryEngine:
     def execute_query(self, query: str) -> InvestigationAnswer:
         q_lower = query.strip().lower()
 
+        # 0. Adversarial / Prompt Injection Defense
+        adversarial_patterns = [
+            r"ignore (all )?previous instructions",
+            r"system prompt",
+            r"drop table",
+            r"<script>",
+            r"delete from",
+            r"exec\(",
+            r"eval\(",
+        ]
+        for pattern in adversarial_patterns:
+            if re.search(pattern, q_lower):
+                return InvestigationAnswer(
+                    query=query,
+                    intent="adversarial_rejected",
+                    summary_answer="Query rejected: Adversarial prompt injection or prohibited command detected.",
+                    confidence=0.0,
+                )
+
         # 1. Plate Search Query: e.g. "Show all sightings of GJ01AB1234"
         plate_match = re.search(r"\b([a-zA-Z]{2}[0-9]{1,2}[a-zA-Z]{1,3}[0-9]{1,4})\b", query)
         if plate_match or "sightings of" in q_lower or "plate" in q_lower:
@@ -60,7 +79,7 @@ class InvestigationQueryEngine:
 
         # 2. Predecessor / Route Origin Query: e.g. "Where was this vehicle before Camera 21?"
         before_match = re.search(r"before\s+(camera\s*\w+|cam[\-_]?\w+)", q_lower)
-        if before_match or "where was" in q_lower and "before" in q_lower:
+        if before_match or ("where was" in q_lower and "before" in q_lower):
             # Extract target camera
             cam_str = before_match.group(1).replace(" ", "").upper() if before_match else ""
             cam_str = cam_str.replace("CAMERA", "CAM")
@@ -84,7 +103,26 @@ class InvestigationQueryEngine:
         if any(term in q_lower for term in ["suspicious", "speed", "anomal", "violation"]):
             return self._handle_anomaly_query(query)
 
-        # 5. General Attribute / Camera / Time Search
+        # 5. In-domain Traffic / Vehicle Guardrail Check
+        domain_keywords = [
+            "car", "suv", "truck", "bus", "motorcycle", "auto", "vehicle", "traffic",
+            "camera", "cctv", "sighting", "observed", "tracked", "white", "black",
+            "silver", "red", "blue", "yellow", "green", "grey", "gray"
+        ]
+        if not any(k in q_lower for k in domain_keywords):
+            return InvestigationAnswer(
+                query=query,
+                intent="unsupported_query",
+                summary_answer=(
+                    "Query intent could not be grounded in traffic intelligence or evidence graph data. "
+                    "Supported queries include plate searches (e.g. 'GJ01AB1234'), route origins "
+                    "('Where was vehicle X before Camera Y?'), visual similarity ('Find vehicles similar to VEH-0001'), "
+                    "speed violations, or vehicle attribute filters (e.g. 'white SUV')."
+                ),
+                confidence=0.0,
+            )
+
+        # 6. General Attribute / Camera / Time Search
         return self._handle_attribute_query(query)
 
     def _handle_plate_query(self, query: str, plate: str) -> InvestigationAnswer:
@@ -243,6 +281,17 @@ class InvestigationQueryEngine:
 
         unique_vids = list({r["vehicle_id"] for r in results})
         desc = f"{matched_color or ''} {matched_class or 'vehicle'}".strip()
+
+        if not results:
+            return InvestigationAnswer(
+                query=query,
+                intent="attribute_search",
+                summary_answer=f"No sightings found matching '{desc}' in the camera evidence graph.",
+                matched_vehicles=[],
+                evidence_sightings=[],
+                confidence=0.0,
+            )
+
         summary = f"Found {len(results)} sighting(s) matching '{desc}' across {len(unique_vids)} vehicle identity(ies)."
 
         return InvestigationAnswer(

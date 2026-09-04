@@ -107,13 +107,8 @@ class RTSPStreamReader:
     def _create_capture(self) -> Optional[cv2.VideoCapture]:
         """Creates cv2.VideoCapture with optimized FFmpeg options for Sentinel feeds."""
         # Force TCP transport and configure buffer settings via FFmpeg env
-        os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = (
-            "rtsp_transport;tcp|"
-            "timeout;30000000|"
-            "buffer_size;1024000|"
-            "max_delay;500000|"
-            "reorder_queue_size;0"
-        )
+        # Force TCP transport for Sentinel feeds
+        os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
         cap = cv2.VideoCapture(self.rtsp_url, cv2.CAP_FFMPEG)
         cap.set(cv2.CAP_PROP_BUFFERSIZE, 2)
         cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 15000)

@@ -1,0 +1,24 @@
+logLevel: info
+logDestinations: [stdout]
+
+# RTSP Configuration
+rtsp: yes
+rtspDisable: no
+protocols: [tcp]
+encryption: "no"
+rtspAddress: :8554
+
+# WebRTC / WHEP
+webrtc: yes
+webrtcAddress: :8889
+
+# HLS
+hls: yes
+hlsAddress: :8888
+
+# API
+api: yes
+apiAddress: :9997
+
+paths:
+  all_others:

@@ -40,6 +40,9 @@ dist/
 build/
 .turbo/
 
+# Deployment binaries
+deployment/bin/
+
 # OS specific
 .DS_Store
 Thumbs.db

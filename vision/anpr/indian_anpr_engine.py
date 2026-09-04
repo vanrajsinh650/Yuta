@@ -180,8 +180,8 @@ class IndianPlateValidator:
                 district_name="Bharat Series",
             )
 
-        # Pattern 2: Standard State HSRP (e.g. GJ01AB1234 or GJ01A1234)
-        std_match = re.match(r"^([A-Z]{2})(\d{1,2})([A-Z]{1,3})(\d{1,4})$", cleaned)
+        # Pattern 2: Standard State HSRP (e.g. GJ01AB1234, GJ01A1234, or legacy GJ011234)
+        std_match = re.match(r"^([A-Z]{2})(\d{1,2})([A-Z]{0,3})(\d{1,4})$", cleaned)
         if std_match:
             state, rto, series, number = std_match.groups()
             rto_padded = rto.zfill(2)
@@ -208,19 +208,30 @@ class IndianPlateValidator:
                 district_name=district,
             )
 
-        # Pattern 3: OCR heuristic correction (attempt fixing first 2 characters if digits mistakenly read)
-        if len(cleaned) >= 8:
-            candidate_state = list(cleaned[:2])
+        # Pattern 3: Comprehensive Positional OCR Syntax Repair
+        # Fixes digit/letter confusion based on mandatory Indian plate character positions
+        if len(cleaned) >= 7:
+            repaired = list(cleaned)
+            # 1. First 2 characters must be State letters (e.g. '6J' -> 'GJ', '0L' -> 'DL')
             for idx in range(2):
-                if candidate_state[idx] in cls.NUM_TO_CHAR:
-                    candidate_state[idx] = cls.NUM_TO_CHAR[candidate_state[idx]]
-            fixed_prefix = "".join(candidate_state)
-            if fixed_prefix in INDIAN_STATE_CODES:
-                # Re-test with corrected state prefix
-                corrected_str = fixed_prefix + cleaned[2:]
-                std_retry = re.match(r"^([A-Z]{2})(\d{1,2})([A-Z]{1,3})(\d{1,4})$", corrected_str)
-                if std_retry:
-                    st, rto, ser, num = std_retry.groups()
+                if repaired[idx] in cls.NUM_TO_CHAR:
+                    repaired[idx] = cls.NUM_TO_CHAR[repaired[idx]]
+
+            # 2. Next 1-2 characters must be RTO digits (e.g. 'O1' -> '01', 'I8' -> '18')
+            for idx in range(2, min(4, len(repaired))):
+                if repaired[idx] in cls.CHAR_TO_NUM:
+                    repaired[idx] = cls.CHAR_TO_NUM[repaired[idx]]
+
+            # 3. Last 1-4 characters must be registration number digits
+            for idx in range(max(4, len(repaired) - 4), len(repaired)):
+                if repaired[idx] in cls.CHAR_TO_NUM:
+                    repaired[idx] = cls.CHAR_TO_NUM[repaired[idx]]
+
+            repaired_str = "".join(repaired)
+            std_retry = re.match(r"^([A-Z]{2})(\d{1,2})([A-Z]{0,3})(\d{1,4})$", repaired_str)
+            if std_retry:
+                st, rto, ser, num = std_retry.groups()
+                if st in INDIAN_STATE_CODES:
                     rto_padded = rto.zfill(2)
                     canonical = f"{st}{rto_padded}{ser}{num.zfill(4)}"
                     district = GUJARAT_RTO_CODES.get(rto_padded) if st == "GJ" else None

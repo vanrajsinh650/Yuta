@@ -18,6 +18,9 @@ from scipy.optimize import linear_sum_assignment
 logger = logging.getLogger(__name__)
 
 
+from vision.association.attention_association import AttentionAssociationHead
+
+
 @dataclass
 class Tracklet:
     """
@@ -64,12 +67,27 @@ class GlobalTrajectoryLinker:
         max_spatial_distance: float = 150.0,
         appearance_similarity_threshold: float = 0.65,
         max_speed_units_per_sec: float = 30.0,  # Physical velocity constraint
+        attention_head: Optional[AttentionAssociationHead] = None,
     ):
         self.min_tracklet_detections = min_tracklet_detections
         self.max_time_gap_sec = max_time_gap_sec
         self.max_spatial_distance = max_spatial_distance
         self.appearance_similarity_threshold = appearance_similarity_threshold
         self.max_speed_units_per_sec = max_speed_units_per_sec
+        self.attention_head = attention_head
+
+    def _compute_appearance_similarity(self, f1: Optional[np.ndarray], f2: Optional[np.ndarray]) -> float:
+        if f1 is None or f2 is None:
+            return 0.5  # Neutral fallback when appearance feature is missing
+        if self.attention_head is not None:
+            try:
+                q = f1.reshape(1, -1)
+                k = f2.reshape(1, -1)
+                aff = self.attention_head.compute_affinity(q, k)
+                return float(aff[0, 0])
+            except Exception:
+                pass
+        return self._cosine_similarity(f1, f2)
 
     def _cosine_similarity(self, f1: Optional[np.ndarray], f2: Optional[np.ndarray]) -> float:
         if f1 is None or f2 is None:
@@ -165,8 +183,8 @@ class GlobalTrajectoryLinker:
                         if implied_speed > self.max_speed_units_per_sec and not plate_match:
                             continue
 
-                    # Appearance similarity check
-                    app_sim = self._cosine_similarity(t1_exit.mean_feature, t2_entry.mean_feature)
+                    # Appearance similarity check (cosine or GMT cross-attention affinity)
+                    app_sim = self._compute_appearance_similarity(t1_exit.mean_feature, t2_entry.mean_feature)
                     if (
                         t1_exit.mean_feature is not None
                         and t2_entry.mean_feature is not None
@@ -211,6 +229,12 @@ class GlobalTrajectoryLinker:
                         all_links.append(link_info)
                         # Merge child into parent
                         clusters[parent_key].extend(clusters[child_key])
+                        # Update running feature centroid of merged cluster
+                        valid_feats = [t.mean_feature for t in clusters[parent_key] if t.mean_feature is not None]
+                        if valid_feats:
+                            centroid = np.mean(valid_feats, axis=0)
+                            for t in clusters[parent_key]:
+                                t.mean_feature = centroid
                         del clusters[child_key]
                         merged_in_this_step += 1
 
