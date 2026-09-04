@@ -41,3 +41,14 @@ limitations under the License.
   - Global Trajectory Linking Engine (`vision/association/trajectory_linker.py`)
   - Multi-Modal Spatio-Temporal Gating & Hungarian Tracklet Association
   - Iterative Hierarchical Trajectory Merging Algorithm
+
+---
+
+## 3. GMT (`FoxCanned/GMT`)
+
+- **Source**: https://github.com/FoxCanned/GMT
+- **Reference**: CVPR 2026 Paper: "GMT: Effective Global Framework for Multi-Camera Multi-Target Tracking"
+- **License**: Apache License 2.0
+- **Integrated Components**:
+  - Attention-Based Global Association Affinity Head (`vision/association/attention_association.py`)
+  - Two-Stage ByteTrack-Style Kalman Filter Local Tracker (`vision/tracking/byte_tracker.py`)
