@@ -65,3 +65,14 @@ limitations under the License.
   - Camera Topology Network & Road Constraints Graph (`vision/trajectory/route_reconstructor.py`)
   - Gaussian Travel-Time Transition Likelihood & Velocity Filtering
   - Spatio-Temporal Route Reconstruction & Intermediate Waypoint Recovery
+
+---
+
+## 5. Indian_LPR (`sanchit2843/Indian_LPR`)
+
+- **Source**: https://github.com/sanchit2843/Indian_LPR
+- **Reference**: Indian Number Plate dataset in wild & LPR benchmark
+- **Integrated Components**:
+  - 4-Point Plate Homography Rectification & Orientation Correction (`vision/anpr/indian_anpr_engine.py`)
+  - Indian Registration Pattern Validation & Gujarat RTO Normalizer (`vision/anpr/indian_anpr_engine.py`)
+  - Multi-Frame Track Voting & Confidence Aggregation Engine (`vision/anpr/indian_anpr_engine.py`)
