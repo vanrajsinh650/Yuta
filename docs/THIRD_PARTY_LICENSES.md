@@ -30,3 +30,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ```
+
+---
+
+## 2. ZIOVISION AIC2025 (`ZIOVISION/AIC2025_Track1_ZV`)
+
+- **Source**: https://github.com/ZIOVISION/AIC2025_Track1_ZV
+- **Reference**: AI City Challenge 2025 Track 1 (1st Place MCMT Solution)
+- **Integrated Components**:
+  - Global Trajectory Linking Engine (`vision/association/trajectory_linker.py`)
+  - Multi-Modal Spatio-Temporal Gating & Hungarian Tracklet Association
+  - Iterative Hierarchical Trajectory Merging Algorithm
