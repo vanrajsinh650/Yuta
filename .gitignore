@@ -1,0 +1,45 @@
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Reference cloned repositories (temporary research cache)
+reference/*
+!reference/.gitkeep
+
+# Model weights & large datasets
+*.pt
+*.pth
+*.onnx
+*.engine
+*.bin
+*.weights
+models/weights/*
+!models/weights/.gitkeep
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs and databases
+*.log
+*.sqlite
+*.db
+
+# Frontend build artifacts
+node_modules/
+.next/
+dist/
+build/
+.turbo/
+
+# OS specific
+.DS_Store
+Thumbs.db
