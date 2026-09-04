@@ -52,3 +52,16 @@ limitations under the License.
 - **Integrated Components**:
   - Attention-Based Global Association Affinity Head (`vision/association/attention_association.py`)
   - Two-Stage ByteTrack-Style Kalman Filter Local Tracker (`vision/tracking/byte_tracker.py`)
+
+---
+
+## 4. Cam-Traj-Rec (`tsinghua-fib-lab/Cam-Traj-Rec`)
+
+- **Source**: https://github.com/tsinghua-fib-lab/Cam-Traj-Rec
+- **Reference**: KDD 2022 Paper: "Spatio-Temporal Vehicle Trajectory Recovery on Road Network Based on Traffic Camera Video Data"
+- **License**: MIT License
+- **Copyright**: Copyright (c) 2023 FIB LAB, Tsinghua University
+- **Integrated Components**:
+  - Camera Topology Network & Road Constraints Graph (`vision/trajectory/route_reconstructor.py`)
+  - Gaussian Travel-Time Transition Likelihood & Velocity Filtering
+  - Spatio-Temporal Route Reconstruction & Intermediate Waypoint Recovery
