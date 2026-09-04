@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  # MediaMTX Real-Time Video Streaming Server (RTSP / WHEP / HLS)
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: yuta-mediamtx
+    ports:
+      - "8554:8554"   # RTSP TCP
+      - "8889:8889"   # WHEP WebRTC
+      - "8888:8888"   # HLS
+    restart: unless-stopped
+    environment:
+      - MTX_PROTOCOLS=tcp
+      - MTX_WEBRTCADDITIONALHOSTS=127.0.0.1
+
+  # YUTA Unified Video Intelligence Platform
+  yuta-platform:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: yuta-intelligence
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mediamtx
+    restart: unless-stopped
+    environment:
+      - SENTINEL_HOST=mediamtx
+      - SENTINEL_API_PORT=8000
+      - SENTINEL_RTSP_PORT=8554

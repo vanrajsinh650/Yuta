@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YUTA — Unified Video Intelligence Platform | Gujarat Police</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 500: '#eab308', 600: '#ca8a04' },
+            police: { 800: '#0f172a', 900: '#020617', red: '#ef4444', amber: '#f59e0b', green: '#10b981' }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Leaflet CSS & JS for GIS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Vis.js Network for Evidence Graph -->
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    #map { height: 520px; border-radius: 0.75rem; }
+    #evidence-network { height: 480px; border-radius: 0.75rem; background: #0b0f19; }
+    .leaflet-popup-content-wrapper { background: #1e293b; color: #f8fafc; border: 1px solid #334155; }
+    .leaflet-popup-tip { background: #1e293b; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans">
+
+  <!-- Top Navbar -->
+  <header class="bg-slate-900/90 backdrop-blur border-b border-slate-800 px-6 py-3.5 flex items-center justify-between sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold text-xl shadow-lg shadow-amber-500/10">
+        <i class="fa-solid fa-shield-halved"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-black text-xl tracking-wider text-white">YUTA</h1>
+          <span class="text-xs bg-amber-500/20 text-amber-400 font-semibold px-2 py-0.5 rounded border border-amber-500/30">GPIC 2026</span>
+          <span class="text-xs bg-emerald-500/20 text-emerald-400 font-semibold px-2 py-0.5 rounded border border-emerald-500/30 flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Sentinel Live
+          </span>
+        </div>
+        <p class="text-xs text-slate-400">Unified Video Intelligence & Cross-Camera Investigation Platform</p>
+      </div>
+    </div>
+
+    <!-- Active Navigation Tabs -->
+    <nav class="flex items-center gap-1.5 bg-slate-950/60 p-1 rounded-xl border border-slate-800/80 text-sm">
+      <button onclick="switchTab('gis')" id="tab-btn-gis" class="tab-btn px-3.5 py-1.5 rounded-lg font-medium bg-amber-500 text-slate-950 shadow transition flex items-center gap-2">
+        <i class="fa-solid fa-map-location-dot"></i> GIS Route
+      </button>
+      <button onclick="switchTab('evidence')" id="tab-btn-evidence" class="tab-btn px-3.5 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition flex items-center gap-2">
+        <i class="fa-solid fa-diagram-project"></i> Evidence Graph
+      </button>
+      <button onclick="switchTab('search')" id="tab-btn-search" class="tab-btn px-3.5 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition flex items-center gap-2">
+        <i class="fa-solid fa-magnifying-glass"></i> Vehicle & ANPR
+      </button>
+      <button onclick="switchTab('ai')" id="tab-btn-ai" class="tab-btn px-3.5 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition flex items-center gap-2">
+        <i class="fa-solid fa-brain"></i> AI Investigation
+      </button>
+      <button onclick="switchTab('alerts')" id="tab-btn-alerts" class="tab-btn px-3.5 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition flex items-center gap-2 relative">
+        <i class="fa-solid fa-bell"></i> Watchlist Alerts
+        <span id="nav-alert-badge" class="w-2 h-2 rounded-full bg-red-500 absolute top-1.5 right-1.5 animate-ping"></span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6">
+
+    <!-- TAB 1: GIS Route Reconstruction -->
+    <div id="tab-gis" class="tab-content space-y-4">
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Map Panel -->
+        <div class="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col">
+          <div class="flex items-center justify-between mb-3 px-1">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-semibold text-slate-200">Ashram Road Corridor Topology (Ahmedabad)</span>
+              <span id="route-stat-badge" class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md">Loading route...</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="loadVehicleRoute('GLOBAL-VEH-0001')" class="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 px-2.5 py-1 rounded border border-amber-500/30 transition">
+                <i class="fa-solid fa-play mr-1"></i> Replay GJ01AB1234
+              </button>
+            </div>
+          </div>
+          <div id="map" class="w-full"></div>
+        </div>
+
+        <!-- Sighting Timeline & Stats -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col">
+          <h2 class="font-bold text-sm text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-timeline text-amber-400"></i> Route Segments
+          </h2>
+          <div id="route-segment-list" class="space-y-3 overflow-y-auto flex-1 text-xs">
+            <!-- Segments injected via JS -->
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800 text-xs text-slate-400 space-y-1">
+            <div class="flex justify-between"><span>Speed Model:</span><span class="text-slate-200">Gaussian Likelihood</span></div>
+            <div class="flex justify-between"><span>Topology Source:</span><span class="text-slate-200">Cam-Traj-Rec (KDD '22)</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: Grand-Finale Evidence Graph -->
+    <div id="tab-evidence" class="tab-content hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="font-bold text-base text-white flex items-center gap-2">
+              <i class="fa-solid fa-diagram-project text-amber-400"></i> Multi-Camera Evidence Graph
+            </h2>
+            <p class="text-xs text-slate-400">Explainable cross-camera links connecting vehicle appearance, ANPR plate evidence, and travel-time</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs bg-blue-500/20 text-blue-400 px-2.5 py-1 rounded border border-blue-500/30">
+              <i class="fa-solid fa-circle-nodes mr-1"></i> Camera Sighting Nodes
+            </span>
+            <span class="text-xs bg-purple-500/20 text-purple-400 px-2.5 py-1 rounded border border-purple-500/30">
+              <i class="fa-solid fa-arrows-split-up-and-left mr-1"></i> ReID / Plate Edges
+            </span>
+          </div>
+        </div>
+        <div id="evidence-network" class="border border-slate-800/80"></div>
+        <div id="evidence-detail-panel" class="mt-4 p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300">
+          Click on any node or transition edge in the graph above to inspect underlying evidence verification.
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: Vehicle & ANPR Search -->
+    <div id="tab-search" class="tab-content hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+        <div class="flex flex-col md:flex-row gap-3">
+          <div class="flex-1 relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-500"></i>
+            <input type="text" id="search-plate-input" placeholder="Search Indian Number Plate (e.g. GJ01AB1234, GJ18, 22BH)..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500">
+          </div>
+          <button onclick="performVehicleSearch()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold px-5 py-2.5 rounded-xl text-sm transition">
+            Search
+          </button>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-slate-800">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-950 text-slate-400 border-b border-slate-800">
+              <tr>
+                <th class="p-3">Global ID</th>
+                <th class="p-3">Plate Number</th>
+                <th class="p-3">Confidence</th>
+                <th class="p-3">Class & Color</th>
+                <th class="p-3">Sightings</th>
+                <th class="p-3">Last Camera</th>
+                <th class="p-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="vehicle-search-results" class="divide-y divide-slate-800/60">
+              <!-- Injected by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: AI Investigation Assistant (TAU-Agent) -->
+    <div id="tab-ai" class="tab-content hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+        <div>
+          <h2 class="font-bold text-base text-white flex items-center gap-2">
+            <i class="fa-solid fa-brain text-amber-400"></i> Grounded Investigation Assistant
+          </h2>
+          <p class="text-xs text-slate-400">Natural language queries grounded strictly in structured CCTV evidence</p>
+        </div>
+
+        <!-- Query Presets -->
+        <div class="flex flex-wrap gap-2 text-xs">
+          <button onclick="runSampleNLQ('Where was GLOBAL-VEH-0001 before Camera 04?')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+            "Where was GLOBAL-VEH-0001 before Camera 04?"
+          </button>
+          <button onclick="runSampleNLQ('Show all sightings of GJ01AB1234')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+            "Show all sightings of GJ01AB1234"
+          </button>
+          <button onclick="runSampleNLQ('Find white SUV')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+            "Find white SUV"
+          </button>
+          <button onclick="runSampleNLQ('Show suspicious movement through these cameras')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+            "Show suspicious movement through these cameras"
+          </button>
+        </div>
+
+        <div class="flex gap-3">
+          <input type="text" id="nlq-input" placeholder="Ask an investigation question (e.g. 'Where was this vehicle before Camera 21?')..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500">
+          <button onclick="submitNLQ()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold px-6 py-2.5 rounded-xl text-sm transition flex items-center gap-2">
+            <i class="fa-solid fa-paper-plane"></i> Ask
+          </button>
+        </div>
+
+        <!-- AI Output Box -->
+        <div id="nlq-result-box" class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3 text-xs hidden">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="font-semibold text-amber-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-sparkles"></i> Structured Answer
+            </span>
+            <span id="nlq-intent-badge" class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded"></span>
+          </div>
+          <p id="nlq-answer-text" class="text-slate-200 text-sm leading-relaxed"></p>
+          <div id="nlq-citations" class="space-y-1 text-slate-400"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: Watchlist Alerts -->
+    <div id="tab-alerts" class="tab-content hidden space-y-4">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+          <h2 class="font-bold text-base text-white flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation text-red-500"></i> Active Real-Time Alerts
+          </h2>
+          <div id="active-alerts-list" class="space-y-3">
+            <!-- Alerts injected by JS -->
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+          <h2 class="font-bold text-sm text-white uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-plus text-amber-400"></i> Add Hotlist Vehicle
+          </h2>
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">Number Plate</label>
+              <input type="text" id="wl-plate" placeholder="e.g. GJ05AB9999" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Reason / Case Reference</label>
+              <input type="text" id="wl-reason" placeholder="e.g. Wanted in Armed Robbery" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Severity</label>
+              <select id="wl-severity" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white">
+                <option value="CRITICAL">CRITICAL</option>
+                <option value="HIGH" selected>HIGH</option>
+                <option value="MEDIUM">MEDIUM</option>
+              </select>
+            </div>
+            <button onclick="addWatchlistPlate()" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded-lg transition mt-2">
+              Add to Hotlist
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
