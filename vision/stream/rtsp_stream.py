@@ -163,20 +163,29 @@ class RTSPStreamReader:
                     backoff_delay = min(backoff_delay * 1.5, max_backoff)
                     continue
 
-                # Connection succeeded: reset backoff
+                # Connection established
                 self.status = "connected"
                 backoff_delay = 1.0
                 logger.info(f"[{self.camera_id}] Connected to RTSP stream.")
+
+                consecutive_failures = 0
+                max_consecutive_failures = 40  # Allow grace period for H.264 keyframe synchronization
 
                 while not self._stop_event.is_set():
                     ret, frame = cap.read()
                     now = time.time()
 
                     if not ret or frame is None:
-                        logger.warning(f"[{self.camera_id}] Frame read failed or stream disconnected.")
-                        self.status = "error"
-                        break
+                        consecutive_failures += 1
+                        if consecutive_failures >= max_consecutive_failures:
+                            logger.warning(f"[{self.camera_id}] Frame read failed {consecutive_failures} times or stream disconnected.")
+                            self.status = "error"
+                            break
+                        time.sleep(0.02)
+                        continue
 
+                    consecutive_failures = 0
+                    self.status = "connected"
                     self.frame_count += 1
                     self.last_frame_time = now
                     self.last_successful_frame = frame
